@@ -1,10 +1,12 @@
 #include <NeoPixelBus.h>
 
-#define LED_PIN 5
-#define LED_COUNT 64
-
-#define COLOR_ORDER RGB
-#define BRIGTH 255
+#define LED_PIN         5
+#define LED_COUNT      64
+#define COLOR_ORDER    RGB
+#define RED            10
+#define GREEN         110
+#define BLUE           10
+#define BRIGTH        255
 
 NeoPixelBus<NeoGrbFeature, NeoEsp32I2s1800KbpsMethod> strip(LED_COUNT, LED_PIN);
 
@@ -61,36 +63,44 @@ void clearLEDs() {
   }
 }
 
-void displayDigit(int tens, int ones) {
+void displayDigit(int tens, int ones) 
+{
   // Validate digit values
-  if (tens < 0 || tens > 9 || ones < 0 || ones > 9) {
-    Serial.println("Digit out of range");
-    return;
-  }
-
-  clearLEDs(); // Turn off all LEDs
-
-  // Display digit for Segment 1 (tens digit)
-  for (int i = 0; i < 32; i++) {
-    if (targetLED1[tens][0] & (1 << i)) {
-      updateLEDs(i, RgbColor((BRIGTH *brightness/10), (BRIGTH *brightness/110), (BRIGTH *brightness/10))); // Turn on LEDs for Segment 1 (low 32 bits)
+    if (tens < 0 || tens > 9 || ones < 0 || ones > 9)
+     {
+        Serial.println("Digit out of range");
+        return;
+     }
+    
+    clearLEDs(); // Turn off all LEDs
+      
+      // Display digit for Segment 1 (tens digit)
+    for (int i = 0; i < 32; i++) 
+    {
+      if (targetLED1[tens][0] & (1 << i)) 
+      {
+        updateLEDs(i, RgbColor((BRIGTH *brightness/RED), (BRIGTH *brightness/GREEN), (BRIGTH *brightness/BLUE))); // Turn on LEDs for Segment 1 (low 32 bits)
+      }
+        
+      if (targetLED1[tens][1] & (1 << i))
+      {
+        updateLEDs(i + 32, RgbColor((BRIGTH *brightness/RED), (BRIGTH *brightness/GREEN), (BRIGTH *brightness/BLUE))); // Turn on LEDs for Segment 1 (high 32 bits)
+      }
     }
-    if (targetLED1[tens][1] & (1 << i)) {
-      updateLEDs(i + 32, RgbColor((BRIGTH *brightness/10), (BRIGTH *brightness/110), (BRIGTH *brightness/10))); // Turn on LEDs for Segment 1 (high 32 bits)
+      
+      // Display digit for Segment 0 (ones digit)
+    for (int i = 0; i < 32; i++)
+    {
+     if (targetLED0[ones][0] & (1 << i)) 
+      {
+         updateLEDs(i, RgbColor((BRIGTH *brightness/RED), (BRIGTH *brightness/GREEN), (BRIGTH *brightness/BLUE))); // Turn on LEDs for Segment 0 (low 32 bits)
+      }
+     if (targetLED0[ones][1] & (1 << i))
+      {
+        updateLEDs(i + 32, RgbColor((BRIGTH *brightness/RED), (BRIGTH *brightness/GREEN), (BRIGTH *brightness/BLUE))); // Turn on LEDs for Segment 0 (high 32 bits)
+      }
     }
-  }
-
-  // Display digit for Segment 0 (ones digit)
-  for (int i = 0; i < 32; i++) {
-    if (targetLED0[ones][0] & (1 << i)) {
-      updateLEDs(i, RgbColor((BRIGTH *brightness/10), (BRIGTH *brightness/110), (BRIGTH *brightness/10))); // Turn on LEDs for Segment 0 (low 32 bits)
-    }
-    if (targetLED0[ones][1] & (1 << i)) {
-      updateLEDs(i + 32, RgbColor((BRIGTH *brightness/10), (BRIGTH *brightness/110), (BRIGTH *brightness/10))); // Turn on LEDs for Segment 0 (high 32 bits)
-    }
-  }
-
-  strip.Show(); // Display the updated LED states
+   strip.Show(); // Display the updated LED states
 }
 
 void loop() {
