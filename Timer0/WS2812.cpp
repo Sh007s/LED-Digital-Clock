@@ -1,18 +1,8 @@
-#include <NeoPixelBus.h>
-
-#define LED_PIN1         5
-#define LED_COUNT      64
-#define COLOR_ORDER    RGB
-#define RED            10
-#define GREEN         110
-#define BLUE           10
-#define BRIGTH        255
+#include "WS2812.h"
 
 NeoPixelBus<NeoGrbFeature, NeoEsp32I2s1800KbpsMethod> strip(LED_COUNT, LED_PIN1);
 
-unsigned long lastUpdateTime = 0;
-int currentNumber = 0; // Keep track of the current number to display
-
+//// Declare the variables
 // Define a pattern using a 64-bit bitmask, split into two 32-bit integers for Segment 1
 uint32_t targetLED0[10][2] = {
   {0b10010000100100001001000001100000, 0b0000000011000001001000010010000},  // LED 0
@@ -40,16 +30,15 @@ uint32_t targetLED1[10][2] = {
   {0b00000110000010010000100100000110, 0b00000000000001100000100100001001}, // LED 8
   {0b00001110000010010000100100000110, 0b00000000000010000000100000001000}, // LED 9
 };
-    
-u_int8_t brightness = 1;   // Adjustment of Brigthness
 
-void setup() {
-  Serial.begin(115200);
-  // Initialize the LED strip
+u_int8_t brightness = 1;
+
+void init_ledsec()
+{
   strip.Begin();
   strip.Show();  // Initialize all pixels to 'off'
   displayDigit(0,0);
-  }
+}
 
 void updateLEDs(int ledIndex, RgbColor color) {
   if (ledIndex >= 0 && ledIndex < LED_COUNT) {  // Check bounds
@@ -79,12 +68,12 @@ void displayDigit(int tens, int ones)
     {
       if (targetLED1[tens][0] & (1 << i)) 
       {
-        updateLEDs(i, RgbColor((BRIGTH *brightness/RED), (BRIGTH *brightness/GREEN), (BRIGTH *brightness/BLUE))); // Turn on LEDs for Segment 1 (low 32 bits)
+        updateLEDs(i, RgbColor((BRIGHT *brightness/RED), (BRIGHT *brightness/GREEN), (BRIGHT *brightness/BLUE))); // Turn on LEDs for Segment 1 (low 32 bits)
       }
         
       if (targetLED1[tens][1] & (1 << i))
       {
-        updateLEDs(i + 32, RgbColor((BRIGTH *brightness/RED), (BRIGTH *brightness/GREEN), (BRIGTH *brightness/BLUE))); // Turn on LEDs for Segment 1 (high 32 bits)
+        updateLEDs(i + 32, RgbColor((BRIGHT *brightness/RED), (BRIGHT *brightness/GREEN), (BRIGHT *brightness/BLUE))); // Turn on LEDs for Segment 1 (high 32 bits)
       }
     }
       
@@ -93,45 +82,12 @@ void displayDigit(int tens, int ones)
     {
      if (targetLED0[ones][0] & (1 << i)) 
       {
-         updateLEDs(i, RgbColor((BRIGTH *brightness/RED), (BRIGTH *brightness/GREEN), (BRIGTH *brightness/BLUE))); // Turn on LEDs for Segment 0 (low 32 bits)
+         updateLEDs(i, RgbColor((BRIGHT *brightness/RED), (BRIGHT *brightness/GREEN), (BRIGHT *brightness/BLUE)));// Turn on LEDs for Segment 0 (low 32 bits)
       }
      if (targetLED0[ones][1] & (1 << i))
       {
-        updateLEDs(i + 32, RgbColor((BRIGTH *brightness/RED), (BRIGTH *brightness/GREEN), (BRIGTH *brightness/BLUE))); // Turn on LEDs for Segment 0 (high 32 bits)
+        updateLEDs(i + 32, RgbColor((BRIGHT *brightness/RED), (BRIGHT *brightness/GREEN), (BRIGHT *brightness/BLUE))); // Turn on LEDs for Segment 0 (high 32 bits)
       }
     }
    strip.Show(); // Display the updated LED states
-}
-
-void loop() {
-  unsigned long currentTime = millis();
-  if(Serial.available())
-  {
-    int input = Serial.read();
-    if(input == '+')
-    {
-      currentNumber++;
-    }
-    else if(input == '-')
-    {
-      currentNumber--;
-    }
-    if(currentNumber >= 1000)
-    {
-      currentNumber = 0;
-    }
-    else if(currentNumber < 0)
-    {
-      currentNumber = 999;
-    }
-    if (currentTime - lastUpdateTime >= 250) {  // Update every 250 milliseconds
-    lastUpdateTime = currentTime;
-
-    // Increment the number to display
-    displayDigit(currentNumber / 10, currentNumber % 10);
-    currentNumber = (currentNumber ) % 10; // Increment number and reset to 0 after 10 
-    Serial.print("Count : ");
-    Serial.println(currentNumber);
-  }
-}
 }
