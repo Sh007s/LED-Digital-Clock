@@ -1,7 +1,7 @@
-#ifndef WS2812_H  
+#ifndef WS2812_H
 #define WS2812_H
 
-#include <NeoPixelBus.h>
+#include <FastLED.h>
 
 #define LED_PIN1         5
 #define LED_COUNT        64
@@ -13,11 +13,12 @@
 
 // Declare the variables with extern
 extern uint8_t brightness;
+extern CRGB leds[LED_COUNT];
 
 // Function declarations
 void init_ledsec();
 void displayDigit(int tens, int one);
-void updateLEDs(int ledIndex, RgbColor color);
+void updateLEDs(int ledIndex, CRGB color);
 void clearLEDs();
 
-#endif
+#endif // WS2812_H
