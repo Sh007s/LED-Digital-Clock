@@ -3,8 +3,6 @@
 
 #include <FastLED.h>
 
-#define LED_PIN1         5  // Pin for seconds LED strip
-#define LED_PIN2         4  // Pin for minutes LED strip
 #define LED_COUNT        64
 #define COLOR_ORDER      RGB
 #define RED              0
