@@ -2,6 +2,8 @@
 #include "WS2812.h"
 #include "GIPO_PIN.h"
 #include "Button.h"
+#include "DHT11_Sensor.h"
+#include "TM1637_7Display.h"
 
 volatile uint32_t second = 0;
 bool timerPaused = false;  // Flag to track if the timer is paused
@@ -11,6 +13,7 @@ bool timerhours = false;   // Flag to track if the hours is running
 bool button3Pressed = false;
 unsigned long lastButton3PressTime = 0;
 int mins = 0, hours = 0, count = 0;
+unsigned long dispalytemphum = 0;
 
 void setup() {
   pinMode(LED_PIN, OUTPUT);  // Set LED pin as output
@@ -18,10 +21,12 @@ void setup() {
   init_timer0();             // Initialized the timer0
   init_ledsec();             // Initialized the LED strips
   init_Button();             // Initialized the Button
+  init_DHT11();              // Initialized the DHT11
+  init_7dispaly();          // Initialized the TM1637 Dispaly
 }
 
 void loop() {
-  // Update the button state
+
   button1.loop();
   button2.loop();
   button3.loop();
@@ -119,8 +124,18 @@ void loop() {
     displayDigit(mins / 10, mins % 10, led2);              // Display minutes on LED strip 2
     displayDigit(CountIsrAT / 10, CountIsrAT % 10, led1);  // Display seconds on LED strip 1
   }
+
+  float temperature = gettemp();
+  float humidity = gethum();
+
+  Serial.printf("Humidity: %.2f%%  Temperature: %.2f°C\n", humidity, temperature);
+
+  showDispaly(temperature);
+  showDispaly(humidity);
+
 }
 /*
 Add the PM and AM 
 while the increment the sec , mins and hours per led to on to indicate which is increment
+add dot matrix for display for weeks 
 */
