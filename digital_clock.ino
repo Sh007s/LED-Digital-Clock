@@ -4,6 +4,7 @@
 #include "Button.h"
 #include "DHT11_Sensor.h"
 #include "TM1637_7Display.h"
+#include "Dot_Matrix.h"
 
 volatile uint32_t second = 0;
 bool timerPaused = false;  // Flag to track if the timer is paused
@@ -11,9 +12,14 @@ bool timersec = false;     // Flag to track if the sec is running
 bool timermins = false;    // Flag to track if the mins is running
 bool timerhours = false;   // Flag to track if the hours is running
 bool button3Pressed = false;
+int pressCount = 0;       // Counter to track number of `+` presses
+int currentDayIndex = 0;  // Start with Week[0] (Sunday)
+bool displayDay = false;  // Flag to control when to display the day
+
 unsigned long lastButton3PressTime = 0;
 int mins = 0, hours = 0, count = 0;
 unsigned long dispalytemphum = 0;
+int hourcount = 0;
 
 void setup() {
   pinMode(LED_PIN, OUTPUT);  // Set LED pin as output
@@ -22,7 +28,8 @@ void setup() {
   init_ledsec();             // Initialized the LED strips
   init_Button();             // Initialized the Button
   init_DHT11();              // Initialized the DHT11
-  init_7dispaly();          // Initialized the TM1637 Dispaly
+  init_7dispaly();           // Initialized the TM1637 Dispaly
+  init_DOT_setup();          // Initialize the MAX7219 module
 }
 
 void loop() {
@@ -132,8 +139,41 @@ void loop() {
 
   showDispaly(temperature);
   showDispaly(humidity);
+///
+  hourcount = hours;
+  if (hours > 11) {
+    hourcount = hourcount + 12;
+  }
+  // Set flag to display the current day
+  displayDay = true;
 
+  // If we've reached 24 presses (24 hours), move to the next day
+  if (hourcount >= 24) {
+    pressCount = 0;     // Reset the counter for the new day
+    currentDayIndex++;  // Move to the next day in the Week array
+
+    // If we've reached the end of the week, loop back to Sunday (Week[0])
+    if (currentDayIndex >= 7) {
+      currentDayIndex = 0;
+    }
+  }
+
+  // Debugging: Show the number of presses and the current day index
+  Serial.print("hourcount: ");
+  Serial.println(hourcount);
+  Serial.print("Current day index: ");
+  Serial.println(currentDayIndex);
+
+  // Display the current day if flag is set
+  if (displayDay || hourcount < 24) {
+    scrollLeft(Week[currentDayIndex], counT[currentDayIndex]);  // Display current day
+    delay(1000);                                                // Simulate hourly display
+    displayDay = false;                                         // Reset flag
+  }
 }
+/*
+use to Rtos to run the task at same time 
+*/
 /*
 Add the PM and AM 
 while the increment the sec , mins and hours per led to on to indicate which is increment
