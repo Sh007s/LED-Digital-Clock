@@ -21,6 +21,63 @@ int mins = 0, hours = 0, count = 0;
 unsigned long dispalytemphum = 0;
 int hourcount = 0;
 
+TaskHandle_t Task1Handle;
+TaskHandle_t Task2Handle;
+
+void Task1(void *DotMatrix) {
+  while (true) {
+    Serial.println("Task 1 is running ");
+    hourcount = hours;
+    if (hours > 11) {
+      hourcount = hourcount + 12;
+    }
+    // Set flag to display the current day
+    displayDay = true;
+
+    // If we've reached 24 presses (24 hours), move to the next day
+    if (hourcount >= 24) {
+      pressCount = 0;     // Reset the counter for the new day
+      currentDayIndex++;  // Move to the next day in the Week array
+
+      // If we've reached the end of the week, loop back to Sunday (Week[0])
+      if (currentDayIndex >= 7) {
+        currentDayIndex = 0;
+      }
+    }
+
+    // Debugging: Show the number of presses and the current day index
+    Serial.print("hourcount: ");
+    Serial.println(hourcount);
+    Serial.print("Current day index: ");
+    Serial.println(currentDayIndex);
+
+    // Display the current day if flag is set
+    if (displayDay || hourcount < 24) {
+      scrollLeft(Week[currentDayIndex], counT[currentDayIndex]);  // Display current day
+      delay(1000);                                                // Simulate hourly display
+      displayDay = false;                                         // Reset flag
+
+      vTaskDelay(1000 / portTICK_PERIOD_MS);
+    }
+  }
+}
+
+void Task2(void *Temp_hum)
+{
+  while(true)
+  {
+    Serial.println("Task 1 is running ");
+    float temperature = gettemp();
+  float humidity = gethum();
+
+  Serial.printf("Humidity: %.2f%%  Temperature: %.2f°C\n", humidity, temperature);
+
+  showDispaly(temperature);
+  showDispaly(humidity);
+    vTaskDelay(1000 / portTICK_PERIOD_MS);
+  }
+}
+
 void setup() {
   pinMode(LED_PIN, OUTPUT);  // Set LED pin as output
   Serial.begin(115200);      // Initialize Serial Monitor
@@ -30,6 +87,10 @@ void setup() {
   init_DHT11();              // Initialized the DHT11
   init_7dispaly();           // Initialized the TM1637 Dispaly
   init_DOT_setup();          // Initialize the MAX7219 module
+
+  xTaskCreate(Task1, "Task 1", 10000, NULL, 1, &Task1Handle);
+  xTaskCreate(Task2, "Task 2", 10000, NULL, 1, &Task2Handle);
+
 }
 
 void loop() {
@@ -131,51 +192,8 @@ void loop() {
     displayDigit(mins / 10, mins % 10, led2);              // Display minutes on LED strip 2
     displayDigit(CountIsrAT / 10, CountIsrAT % 10, led1);  // Display seconds on LED strip 1
   }
-
-  float temperature = gettemp();
-  float humidity = gethum();
-
-  Serial.printf("Humidity: %.2f%%  Temperature: %.2f°C\n", humidity, temperature);
-
-  showDispaly(temperature);
-  showDispaly(humidity);
-///
-  hourcount = hours;
-  if (hours > 11) {
-    hourcount = hourcount + 12;
-  }
-  // Set flag to display the current day
-  displayDay = true;
-
-  // If we've reached 24 presses (24 hours), move to the next day
-  if (hourcount >= 24) {
-    pressCount = 0;     // Reset the counter for the new day
-    currentDayIndex++;  // Move to the next day in the Week array
-
-    // If we've reached the end of the week, loop back to Sunday (Week[0])
-    if (currentDayIndex >= 7) {
-      currentDayIndex = 0;
-    }
-  }
-
-  // Debugging: Show the number of presses and the current day index
-  Serial.print("hourcount: ");
-  Serial.println(hourcount);
-  Serial.print("Current day index: ");
-  Serial.println(currentDayIndex);
-
-  // Display the current day if flag is set
-  if (displayDay || hourcount < 24) {
-    scrollLeft(Week[currentDayIndex], counT[currentDayIndex]);  // Display current day
-    delay(1000);                                                // Simulate hourly display
-    displayDay = false;                                         // Reset flag
-  }
 }
-/*
-use to Rtos to run the task at same time 
-*/
 /*
 Add the PM and AM 
 while the increment the sec , mins and hours per led to on to indicate which is increment
-add dot matrix for display for weeks 
 */
