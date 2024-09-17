@@ -2,6 +2,7 @@
 #define WS2812_H
 
 #include <FastLED.h>
+#include "GIPO_PIN.h"
 
 #define LED_COUNT        64
 #define COLOR_ORDER      RGB

@@ -4,9 +4,7 @@
 #include <esp32-hal-timer.h>
 #include "driver/timer.h"
 #include "soc/soc_caps.h"
-
-// define the LED pin to Toggle
-#define LED_PIN 2
+#include "GIPO_PIN.h" 
 
 extern hw_timer_t *timer;
 extern volatile bool timer0_Flag;   // Declare the flag with extern

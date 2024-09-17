@@ -62,18 +62,16 @@ void Task1(void *DotMatrix) {
   }
 }
 
-void Task2(void *Temp_hum)
-{
-  while(true)
-  {
-    Serial.println("Task 1 is running ");
+void Task2(void *Temp_hum) {
+  while (true) {
+    Serial.println("Task 2 is running ");
     float temperature = gettemp();
-  float humidity = gethum();
+    float humidity = gethum();
 
-  Serial.printf("Humidity: %.2f%%  Temperature: %.2f°C\n", humidity, temperature);
+    Serial.printf("Humidity: %.2f%%  Temperature: %.2f°C\n", humidity, temperature);
 
-  showDispaly(temperature);
-  showDispaly(humidity);
+    showDispaly(temperature);
+    showDispaly(humidity);
     vTaskDelay(1000 / portTICK_PERIOD_MS);
   }
 }
@@ -90,7 +88,6 @@ void setup() {
 
   xTaskCreate(Task1, "Task 1", 10000, NULL, 1, &Task1Handle);
   xTaskCreate(Task2, "Task 2", 10000, NULL, 1, &Task2Handle);
-
 }
 
 void loop() {

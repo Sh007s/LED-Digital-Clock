@@ -2,10 +2,7 @@
 #define BUTTON_H
 
 #include <ezButton.h>
-
-#define BUTTON_PIN1 14          // Define the button pin1 for TImerPuase
-#define BUTTON_PIN2 13          // Define the button pin2 for Change the State
-#define BUTTON_PIN3 12          // Define the button pin3 for Increment
+#include "GIPO_PIN.h"
 
 #define DEBOUNCE_TIME1 50       // Debounce time for the button
 #define DEBOUNCE_TIME2 50       // Debounce time for the button

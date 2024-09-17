@@ -1,10 +1,6 @@
 #include <LedControl.h>
 #include <Arduino.h>
-
-// Define connections to ESP32
-#define DIN_PIN 22  // Data In (DIN)
-#define CS_PIN  17  // Chip Select (CS)
-#define CLK_PIN 16  // Clock (CLK)
+#include "GIPO_PIN.h"
 
 extern byte Sunday[6][8];
 extern byte Monday[6][8];

@@ -3,8 +3,7 @@
 
 #include <DHTesp.h>
 #include <Adafruit_Sensor.h>
-
-#define DHT_PIN 26
+#include "GIPO_PIN.h"
 
 void init_DHT11(void);
 float gettemp();
