@@ -1,0 +1,11 @@
+1) Empty PCB
+2) Tactile Button
+3) 3 pin JST and 2 pin JST
+4) jumper wire and normal wire
+5) RBC Led 
+6) Barsticks female
+7) Solder kit
+8) Resistor 
+9) 5v Adopter and cable
+10) 3.7v Littum cell and holder
+11) Charging Module

@@ -190,7 +190,3 @@ void loop() {
     displayDigit(CountIsrAT / 10, CountIsrAT % 10, led1);  // Display seconds on LED strip 1
   }
 }
-/*
-Add the PM and AM 
-while the increment the sec , mins and hours per led to on to indicate which is increment
-*/
