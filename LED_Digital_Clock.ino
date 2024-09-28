@@ -81,7 +81,7 @@ void setup() {
   Serial.begin(115200);      // Initialize Serial Monitor
   init_timer0();             // Initialized the timer0
   init_ledsec();             // Initialized the LED strips
-  init_Button();             // Initialized the Button
+  // init_Button();             // Initialized the Button
   init_DHT11();              // Initialized the DHT11
   init_7dispaly();           // Initialized the TM1637 Dispaly
   init_DOT_setup();          // Initialize the MAX7219 module
@@ -91,12 +91,12 @@ void setup() {
 }
 
 void loop() {
-
+/*
   button1.loop();
   button2.loop();
   button3.loop();
-
-  // Check if the button was pressed
+*/
+  /*// Check if the button was pressed
   if (button1.isPressed()) {
     timerPaused = !timerPaused;  // Toggle the paused state
 
@@ -165,7 +165,7 @@ void loop() {
       }
     }
   }
-
+*/
   // Check if timer0 has enabled
   if (timer0_Flag) {
     timer0_Flag = false;  // Clear flag

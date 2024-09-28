@@ -5,16 +5,16 @@
 #define LED_PIN 2
 
 // define the LED strip 1, 2, 3 pins :-> Change the LED_PIN1,2 pins to 12,25 pins
-#define LED_PIN1 5     
-#define LED_PIN2 4     
+#define LED_PIN1 12     
+#define LED_PIN2 25     
 #define LED_PIN3 15    
 
 /* remove the Button pin1,2,3  and add NRF module pins D4,D5, D23,D18, D19  to remote communicate */
-
-#define BUTTON_PIN1 14          // Define the button pin1 for TImerPuase
-#define BUTTON_PIN2 13          // Define the button pin2 for Change the State
-#define BUTTON_PIN3 12          // Define the button pin3 for Increment
-
+/*
+#define BUTTON_PIN1  2        // Define the button pin1 for TImerPuase
+#define BUTTON_PIN2  5         // Define the button pin2 for Change the State
+#define BUTTON_PIN3   5        // Define the button pin3 for Increment
+*/
 // define the DHT11 Sensor data pin 
 #define DHT_PIN 26
 
@@ -36,6 +36,14 @@
 // define the DS1307 RTC module pin
 #define CLK 21
 #define DIO 22
+
+// Define the NRF module 
+// #define VCC 3.3V
+#define CSN 5
+#define CE 4
+// #define SCK 18
+// #define MISO 19
+// #define MOSI 23
 
 /*
 Add the pin for NRF Module, Ds1307 RTC module 16-bit ws2812 led strip
