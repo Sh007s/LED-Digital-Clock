@@ -96,6 +96,7 @@ void loop() {
   button2.loop();
   button3.loop();
 */
+/*
   /*// Check if the button was pressed
   if (button1.isPressed()) {
     timerPaused = !timerPaused;  // Toggle the paused state
