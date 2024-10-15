@@ -1,4 +1,6 @@
+#include <Wire.h>
 #include "espnow.h"
+#include "RTC.h"
 #include "Timer0.h"
 #include "WS2812.h"
 #include "GIPO_PIN.h"
@@ -19,9 +21,10 @@ int currentDayIndex = 0;                 // Start with Week[0] (Sunday)
 bool displayDay = false;                 // Flag to control when to display the day
 
 //unsigned long lastButton3PressTime = 0;
-int mins = 0, hours = 0, count = 0;
+int count = 0;
 unsigned long dispalytemphum = 0;
 int hourcount = 0;
+int lastSyncMinute = -1;  // To ensure sync only happens once per minute
 
 TaskHandle_t Task1Handle;
 TaskHandle_t Task2Handle;
@@ -30,10 +33,10 @@ void Task1(void *DotMatrix) {
   while (true) {
     Serial.println("Task 1 is running ");
     hourcount = hours;
-    if (hours > 11) {
-      hourcount = hourcount + 12;
-    }
-    // Set flag to display the current day
+    // if (hours > 11) {
+    //   hourcount = hourcount + 12;
+    // }
+    // // Set flag to display the current day
     displayDay = true;
 
     // If we've reached 24 presses (24 hours), move to the next day
@@ -82,8 +85,9 @@ void setup() {
   pinMode(LED_PIN, OUTPUT);  // Set LED pin as output
   Serial.begin(115200);      // Initialize Serial Monitor
   init_espnow();
-  init_timer0();  // Initialized the timer0
-  init_ledsec();  // Initialized the LED strips
+  init_rtc();
+  init_timer0();     // Initialized the timer0
+  init_ledsec();     // Initialized the LED strips
   init_DHT11();      // Initialized the DHT11
   init_7dispaly();   // Initialized the TM1637 Dispaly
   init_DOT_setup();  // Initialize the MAX7219 module
@@ -96,7 +100,7 @@ void setup() {
 }
 
 void loop() {
-  
+
   if (messageReceived) {
     // Print the received timer data for debugging
     Serial.println(Recvdata.timerPaused);
@@ -111,7 +115,7 @@ void loop() {
     messageReceived = false;
   }
 
-  
+
   // Handle timer pausing and resuming based on received data
   if (Recvdata.timerPaused) {
     if (timerRunning) {
@@ -126,7 +130,7 @@ void loop() {
       timerRunning = true;
     }
   }
-  
+
   // Check for button 2 pressed status and press duration
   if (Recvdata.timerPaused && Recvdata.button2Pressed) {
     Serial.println(Recvdata.button2Pressed);
@@ -154,7 +158,7 @@ void loop() {
 
     Recvdata.button2Pressed = false;  // Reset the button press flag after processing
   }
-  
+
   // Check for button 3 pressed (increment the corresponding timer value)
   if (Recvdata.timerPaused && Recvdata.button3Pressed) {
     Serial.println("Button 3 press received");
@@ -190,16 +194,33 @@ void loop() {
       if (mins >= 60) {  // If minutes reach 60, reset and increment hours
         mins = 0;
         hours++;            // Increment hours
-        if (hours >= 12) {  // Reset hours after 11:59:59 to 00:00:00
+        if (hours >= 24) {  // Reset hours after 11:59:59 to 00:00:00
           hours = 0;
         }
       }
+      Serial.print("Timer Time: ");
+      Serial.print(hours);
+      Serial.print(':');
+      Serial.print(mins);
+      Serial.print(':');
+      if (CountIsrAT < 10) {
+        Serial.print('0');
+      }
+      Serial.println(CountIsrAT);
     }
     // Print the current time
-    Serial.printf("%02d hours %02d mins %02d sec\n", hours, mins, CountIsrAT);
+    //    Serial.printf("%02d hours %02d mins %02d sec\n", hours, mins, CountIsrAT);
 
     displayDigit(hours / 10, hours % 10, led3);            // Display minutes on LED strip 3
     displayDigit(mins / 10, mins % 10, led2);              // Display minutes on LED strip 2
     displayDigit(CountIsrAT / 10, CountIsrAT % 10, led1);  // Display seconds on LED strip 1
+
+    // Sync RTC with Timer 0 at the start of every minute
+    DateTime now = rtc.now();
+    if (now.minute() != lastSyncMinute) {
+      sync_time_with_rtc();  // Use the new sync function
+      lastSyncMinute = now.minute();
+      Serial.println("Time synced with RTC");
+    }
   }
 }

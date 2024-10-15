@@ -13,7 +13,7 @@
 #define DHT_PIN 26
 
 // Define the Dot matrix pins
-#define DIN_PIN 22  // Data In (DIN) /* Change the DIN_PIN to 27  */
+#define DIN_PIN 27  // Data In (DIN) /* Change the DIN_PIN to 27  */
 #define CS_PIN  17  // Chip Select (CS)
 #define CLK_PIN 16  // Clock (CLK)
 
