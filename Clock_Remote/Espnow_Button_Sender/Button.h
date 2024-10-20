@@ -11,9 +11,10 @@
 #define DEBOUNCE_TIME2 50       // Debounce time for the button
 #define DEBOUNCE_TIME3 50       // Debounce time for the button
 
-#define SHORT_PRESS_SEC 1000    // press the SHORT_PRESS_SEC 500 to incremnt the sec
-#define MEDIUM_PRESS_MINS 2000  // press the MEDIUM_PRESS_SEC 1000 to incremnt the mins
-#define LONG_PRESS_HOURS 3000   // press the LONG_PRESS_SEC 1500 to incremnt the hours
+#define SHORT_PRESS_SEC 500    // press the SHORT_PRESS_SEC 500 to incremnt the sec
+#define MEDIUM_PRESS_MINS 1000 // press the MEDIUM_PRESS_SEC 1000 to incremnt the mins
+#define LONG_PRESS_HOURS 2000  // press the LONG_PRESS_SEC 1500 to incremnt the hours
+#define PRESS_FOR_WEEKDAY 3000
 
 extern ezButton button1;  // Initialize the button
 extern ezButton button2;  // Initialize the button

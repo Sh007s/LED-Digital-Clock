@@ -6,6 +6,7 @@ typedef struct time_setup {
   bool timersec;
   bool timermins;
   bool timerhours;
+  bool weekday;
   bool button2Pressed;
   bool button3Pressed;
   unsigned long pressDuration;
@@ -18,7 +19,8 @@ void setup() {
   init_espnow();
   init_Button();
 
-  Senddata = {};  // Initialize Senddata structure
+  //Senddata = { false, false, false, false, false, false, false, 0 };  // Initialize Senddata structure
+  Senddata = { };
 }
 
 void loop() {
@@ -45,25 +47,35 @@ void loop() {
     Serial.println(Senddata.pressDuration);
 
     // Determine timer mode
-    if (Senddata.pressDuration >= LONG_PRESS_HOURS) {
+    if (Senddata.pressDuration >= PRESS_FOR_WEEKDAY) {
+      Senddata.weekday = true;      
+      Senddata.timerhours = false;
+      Senddata.timermins = false;
+      Senddata.timersec = false;
+      Serial.println(" press detected for weeks.  set to weekday mode.");
+    } else if (Senddata.pressDuration >= LONG_PRESS_HOURS) {
       Senddata.timerhours = true;
       Senddata.timermins = false;
       Senddata.timersec = false;
+      Senddata.weekday = false;
       Serial.println("Long press detected. Timer set to hours mode.");
     } else if (Senddata.pressDuration >= MEDIUM_PRESS_MINS) {
       Senddata.timermins = true;
       Senddata.timerhours = false;
       Senddata.timersec = false;
+      Senddata.weekday = false;
       Serial.println("Medium press detected. Timer set to minutes mode.");
     } else if (Senddata.pressDuration >= SHORT_PRESS_SEC) {
       Senddata.timersec = true;
       Senddata.timerhours = false;
       Senddata.timermins = false;
+      Senddata.weekday = false;
       Serial.println("Short press detected. Timer set to seconds mode.");
     } else {
       Senddata.timersec = false;
       Senddata.timerhours = false;
       Senddata.timermins = false;
+      Senddata.weekday = false;
       Serial.println("Button 2 press too short. No action taken.");
     }
     // Send updated status
