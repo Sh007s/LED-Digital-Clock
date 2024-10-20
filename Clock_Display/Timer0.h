@@ -11,6 +11,7 @@ extern volatile bool timer0_Flag;   // Declare the flag with extern
 extern volatile int32_t CountIsrAT; // Declare the counter with extern
 
 void init_timer0();
+void timerISR();
 void IRAM_ATTR onTimer();
 
 #endif

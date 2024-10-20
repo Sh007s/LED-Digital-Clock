@@ -14,8 +14,8 @@
 
 // Define the Dot matrix pins
 #define DIN_PIN 27  // Data In (DIN) /* Change the DIN_PIN to 27  */
-#define CS_PIN  17  // Chip Select (CS)
-#define CLK_PIN 16  // Clock (CLK)
+#define CS_PIN  17  // Chip Select (CS)  Tx2
+#define CLK_PIN 16  // Clock (CLK)       Rx2
 
 // define the TM1637_Dispaly pin
 #define CLK 18
@@ -26,4 +26,8 @@
 #define DIO 22
 //Add the pin for NRF Module, Ds1307 RTC module 16-bit ws2812 led strip
 */
+#define SDA1 21    // red
+#define SCL1 22     // org
+
+
 #endif // GPIO_PIN_H

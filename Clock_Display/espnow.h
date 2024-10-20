@@ -10,6 +10,7 @@ typedef struct time_setup {
   bool timersec;
   bool timermins;
   bool timerhours;
+  bool weekday;
   bool button2Pressed;
   bool button3Pressed;  // Added button3Pressed
   unsigned long pressDuration;

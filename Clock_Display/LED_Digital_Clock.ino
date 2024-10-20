@@ -1,108 +1,120 @@
 #include <Wire.h>
-#include "espnow.h"
-#include "RTC.h"
+#include <RTClib.h>  // RTC library for DS1307/DS3231 or similar RTC modules
 #include "Timer0.h"
+#include "espnow.h"
 #include "WS2812.h"
 #include "GIPO_PIN.h"
-//#include "Button.h"
 #include "DHT11_Sensor.h"
 #include "TM1637_7Display.h"
 #include "Dot_Matrix.h"
 
-#define SHORT_PRESS_SEC 1000    // Duration for short press in milliseconds
-#define MEDIUM_PRESS_MINS 2000  // Duration for medium press in milliseconds
-#define LONG_PRESS_HOURS 3000   // Duration for long press in milliseconds
+#define SHORT_PRESS_SEC 500
+#define MEDIUM_PRESS_MINS 1000
+#define LONG_PRESS_HOURS 2000
+#define PRESS_FOR_WEEKDAY 3000
 
-volatile uint32_t second = 0;
-bool timerRunning = false;               // Flag to track if the timer is running
-unsigned long lastButton3PressTime = 0;  // Stores the last press time of Button 3
-int pressCount = 0;                      // Counter to track number of `+` presses
-int currentDayIndex = 0;                 // Start with Week[0] (Sunday)
-bool displayDay = false;                 // Flag to control when to display the day
+RTC_DS3231 rtc;  // Create an RTC object
 
-//unsigned long lastButton3PressTime = 0;
-int count = 0;
-unsigned long dispalytemphum = 0;
-int hourcount = 0;
-int lastSyncMinute = -1;  // To ensure sync only happens once per minute
+struct TimerState {
+  bool displayDay;
+  bool timerRunning;
+  int currentDayIndex;
+  int hourCount;
+  int minscount;
+  int seccount;
+  int lastSyncMinute;
+};
+
+// Timer and ESP32 time variables
+int hours = 0, mins = 0;
+TimerState timerState;
 
 TaskHandle_t Task1Handle;
 TaskHandle_t Task2Handle;
 
-void Task1(void *DotMatrix) {
-  while (true) {
-    Serial.println("Task 1 is running ");
-    hourcount = hours;
-    // if (hours > 11) {
-    //   hourcount = hourcount + 12;
-    // }
-    // // Set flag to display the current day
-    displayDay = true;
+// RTC initialization
+void init_rtc() {
+  if (!rtc.begin()) {
+    Serial.println("Couldn't find RTC!");
+    while (1)
+      ;
+  }
 
-    // If we've reached 24 presses (24 hours), move to the next day
-    if (hourcount >= 24) {
-      pressCount = 0;     // Reset the counter for the new day
-      currentDayIndex++;  // Move to the next day in the Week array
-
-      // If we've reached the end of the week, loop back to Sunday (Week[0])
-      if (currentDayIndex >= 7) {
-        currentDayIndex = 0;
-      }
-    }
-
-    // Debugging: Show the number of presses and the current day index
-    Serial.print("hourcount: ");
-    Serial.println(hourcount);
-    Serial.print("Current day index: ");
-    Serial.println(currentDayIndex);
-
-    // Display the current day if flag is set
-    if (displayDay || hourcount < 24) {
-      scrollLeft(Week[currentDayIndex], counT[currentDayIndex]);  // Display current day
-      delay(1000);                                                // Simulate hourly display
-      displayDay = false;                                         // Reset flag
-
-      vTaskDelay(1000 / portTICK_PERIOD_MS);
-    }
+  if (rtc.lostPower()) {
+    Serial.println("RTC lost power, setting the time!");
+    rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
   }
 }
 
+// Sync ESP32 time with RTC
+void sync_time_with_rtc() {
+  DateTime now = rtc.now();
+  hours = now.hour();
+  mins = now.minute();
+  CountIsrAT = now.second();
+}
+
+void Task1(void *DotMatrix) {
+  while (true) {
+    // Assuming 'hours', 'mins', and 'CountIsrAT' are updated elsewhere based on real-time
+    timerState.hourCount = hours;        // Update hourCount from external source
+    timerState.displayDay = true;        // Set flag to display the day
+
+    // Print current hour and week information for debugging
+    // Serial.printf("Hourcount :  %d\n", timerState.hourCount);
+    // Serial.printf("Week Number :  %d\n", timerState.currentDayIndex);
+    // Display the day if displayDay flag is set or hourCount is less than 24
+    if (timerState.displayDay || timerState.hourCount < 24) {
+      scrollLeft(Week[timerState.currentDayIndex], counT[timerState.currentDayIndex]);  // Scroll the current day on the dot matrix
+      timerState.displayDay = false;                                                    // Reset display flag
+    }
+
+    // Suspend the task for 1 second to allow the system to breathe
+    vTaskDelay(1000 / portTICK_PERIOD_MS);  // 1 second delay to let the task wait
+  }
+}
+
+// Task 2: Handle DHT11 Sensor Data
 void Task2(void *Temp_hum) {
   while (true) {
-    Serial.println("Task 2 is running ");
     float temperature = gettemp();
     float humidity = gethum();
 
-    Serial.printf("Humidity: %.2f%%  Temperature: %.2f°C\n", humidity, temperature);
-
     showDispaly(temperature);
+    vTaskDelay(1000 / portTICK_PERIOD_MS);
     showDispaly(humidity);
     vTaskDelay(1000 / portTICK_PERIOD_MS);
   }
 }
 
+// Setup function
 void setup() {
-  pinMode(LED_PIN, OUTPUT);  // Set LED pin as output
-  Serial.begin(115200);      // Initialize Serial Monitor
+  Serial.begin(115200);
+
+  // Initialize various modules
   init_espnow();
   init_rtc();
-  init_timer0();     // Initialized the timer0
-  init_ledsec();     // Initialized the LED strips
-  init_DHT11();      // Initialized the DHT11
-  init_7dispaly();   // Initialized the TM1637 Dispaly
-  init_DOT_setup();  // Initialize the MAX7219 module
+  init_timer0();
+  init_ledsec();
+  init_DHT11();
+  init_7dispaly();
+  init_DOT_setup();
 
   xTaskCreate(Task1, "Task 1", 10000, NULL, 1, &Task1Handle);
   xTaskCreate(Task2, "Task 2", 10000, NULL, 1, &Task2Handle);
 
-  // Initialize the received data structure
-  Recvdata = { false, false, false, false, false, false, 0 };
+  // Initial RTC sync
+  sync_time_with_rtc();
+
+  Recvdata = { false, false, false, false, false, false, false, 0 };
+  timerState = { false, false, 0, 0, -1 };
 }
 
+// Main loop
 void loop() {
-
+  // Handle ESPNOW message
   if (messageReceived) {
-    // Print the received timer data for debugging
+    Serial.print("Timer paush: ");
     Serial.println(Recvdata.timerPaused);
     Serial.print("Seconds running: ");
     Serial.println(Recvdata.timersec);
@@ -111,116 +123,126 @@ void loop() {
     Serial.print("Hours running: ");
     Serial.println(Recvdata.timerhours);
 
-    // Reset the flag after processing
     messageReceived = false;
   }
 
-
   // Handle timer pausing and resuming based on received data
   if (Recvdata.timerPaused) {
-    if (timerRunning) {
+    if (timerState.timerRunning) {
       timerStop(timer);  // Stop the timer if it's running
       Serial.println("Timer Paused");
-      timerRunning = false;
+      timerState.timerRunning = false;
     }
   } else {
-    if (!timerRunning) {
+    if (!timerState.timerRunning) {
       timerStart(timer);  // Start the timer if it's not running
       Serial.println("Timer Resumed");
-      timerRunning = true;
+      timerState.timerRunning = true;
     }
   }
 
-  // Check for button 2 pressed status and press duration
+  // Handle button press logic
   if (Recvdata.timerPaused && Recvdata.button2Pressed) {
-    Serial.println(Recvdata.button2Pressed);
-    Serial.println(Recvdata.pressDuration);
-
-    // Set timer mode based on press duration
-    if (Recvdata.pressDuration >= LONG_PRESS_HOURS) {
-      Recvdata.timerhours = true;
-      Recvdata.timermins = false;  // Ensure others are set to false
+    if (Recvdata.pressDuration >= PRESS_FOR_WEEKDAY) {
+      Recvdata.weekday = true;
+      Recvdata.timerhours = false;
+      Recvdata.timermins = false;
       Recvdata.timersec = false;
-      Serial.println("Long press detected. Timer set to hours mode.");
+    } else if (Recvdata.pressDuration >= LONG_PRESS_HOURS) {
+      Recvdata.timerhours = true;
+      Recvdata.timermins = false;
+      Recvdata.timersec = false;
+      Recvdata.weekday = false;
     } else if (Recvdata.pressDuration >= MEDIUM_PRESS_MINS) {
       Recvdata.timermins = true;
-      Recvdata.timerhours = false;  // Ensure others are set to false
+      Recvdata.timerhours = false;
       Recvdata.timersec = false;
-      Serial.println("Medium press detected. Timer set to minutes mode.");
+      Recvdata.weekday = false;
     } else if (Recvdata.pressDuration >= SHORT_PRESS_SEC) {
       Recvdata.timersec = true;
-      Recvdata.timerhours = false;  // Ensure others are set to false
+      Recvdata.timerhours = false;
       Recvdata.timermins = false;
-      Serial.println("Short press detected. Timer set to seconds mode.");
-    } else {
-      Serial.println("Button 2 press too short. No action taken.");
+      Recvdata.weekday = false;
     }
-
-    Recvdata.button2Pressed = false;  // Reset the button press flag after processing
+    Recvdata.button2Pressed = false;
   }
 
-  // Check for button 3 pressed (increment the corresponding timer value)
+  // Increment corresponding timer values
   if (Recvdata.timerPaused && Recvdata.button3Pressed) {
-    Serial.println("Button 3 press received");
-
-    // Check which timer mode is active (seconds, minutes, or hours)
     if (Recvdata.timersec) {
-      CountIsrAT = (CountIsrAT + 1) % 60;  // Increment seconds
-      Serial.printf("Seconds running: %d\n", CountIsrAT);
+      CountIsrAT = (CountIsrAT + 1) % 60;
       displayDigit(CountIsrAT / 10, CountIsrAT % 10, led1);
     } else if (Recvdata.timermins) {
-      mins = (mins + 1) % 60;  // Increment minutes
-      Serial.printf("Minutes running: %d\n", mins);
+      mins = (mins + 1) % 60;
       displayDigit(mins / 10, mins % 10, led2);
     } else if (Recvdata.timerhours) {
-      hours = (hours % 12) + 1;  // Increment hours, cycling from 1 to 12
-      Serial.printf("Hours running: %d\n", hours);
+      hours = (hours + 1) % 24;
       displayDigit(hours / 10, hours % 10, led3);
-    } else {
-      Serial.println("No timer mode active");
+    } else if (Recvdata.weekday) {
+      timerState.currentDayIndex++;
+      if (timerState.currentDayIndex >= 7) {
+        timerState.currentDayIndex = 0;
+        Serial.printf("Day num :  %d\n", timerState.currentDayIndex);
+      }
     }
-    // Reset button 3 pressed flag
-    Recvdata.button3Pressed = false;  // Ensure button state reset is in the right place
+    Recvdata.button3Pressed = false;
   }
 
-  // Check if timer0 has enabled
+  // Handle 1-second timer updates
   if (timer0_Flag) {
-    timer0_Flag = false;  // Clear flag
+    timer0_Flag = false;
 
-    // Handle second rollover
     if (CountIsrAT >= 60) {
-      CountIsrAT = 0;    // Reset seconds
-      mins++;            // Increment minutes
-      if (mins >= 60) {  // If minutes reach 60, reset and increment hours
+      CountIsrAT = 0;
+      mins++;
+      if (mins >= 60) {
         mins = 0;
-        hours++;            // Increment hours
-        if (hours >= 24) {  // Reset hours after 11:59:59 to 00:00:00
+        hours++;
+        if (hours >= 24) {
           hours = 0;
         }
       }
-      Serial.print("Timer Time: ");
-      Serial.print(hours);
-      Serial.print(':');
-      Serial.print(mins);
-      Serial.print(':');
-      if (CountIsrAT < 10) {
-        Serial.print('0');
+    }
+
+    // Print the time tracked by the ESP32 (based on Timer 0)
+    Serial.print("Timer Time: ");
+    Serial.print(hours);
+    Serial.print(':');
+    Serial.print(mins);
+    Serial.print(':');
+    if (CountIsrAT < 10) {
+      Serial.print('0');
+    }
+    Serial.println(CountIsrAT);
+
+    displayDigit(hours / 10, hours % 10, led3);
+    displayDigit(mins / 10, mins % 10, led2);
+    displayDigit(CountIsrAT / 10, CountIsrAT % 10, led1);
+
+     // Move to the next day if the time rolls over from 23:59:59 to 00:00:00
+    if ( hours == 0 && mins == 0 && CountIsrAT == 0) {
+      Serial.println("Incrementing day index...");
+
+      timerState.hourCount = 0;          // Reset hour count after 24 hours
+      timerState.currentDayIndex++;      // Increment the day
+
+      if (timerState.currentDayIndex >= 7) {
+        timerState.currentDayIndex = 0;  // Loop back to day 0 after a week
       }
-      Serial.println(CountIsrAT);
-    }
-    // Print the current time
-    //    Serial.printf("%02d hours %02d mins %02d sec\n", hours, mins, CountIsrAT);
 
-    displayDigit(hours / 10, hours % 10, led3);            // Display minutes on LED strip 3
-    displayDigit(mins / 10, mins % 10, led2);              // Display minutes on LED strip 2
-    displayDigit(CountIsrAT / 10, CountIsrAT % 10, led1);  // Display seconds on LED strip 1
-
-    // Sync RTC with Timer 0 at the start of every minute
-    DateTime now = rtc.now();
-    if (now.minute() != lastSyncMinute) {
-      sync_time_with_rtc();  // Use the new sync function
-      lastSyncMinute = now.minute();
-      Serial.println("Time synced with RTC");
+      // Print updated week number for debugging
+      Serial.print("Updated Week Number: ");
+      Serial.println(timerState.currentDayIndex);
     }
+
   }
+  /*
+  // Sync time with RTC at the start of each minute
+  DateTime now = rtc.now();
+  if (now.minute() != timerState.lastSyncMinute) {
+    sync_time_with_rtc();
+    timerState.lastSyncMinute = now.minute();
+    Serial.println("Time synced with RTC");
+  }
+*/
 }
