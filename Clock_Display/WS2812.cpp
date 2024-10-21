@@ -61,23 +61,27 @@ void displayDigit(int tens, int ones, CRGB* leds) {
 
   clearLEDs(leds);  // Turn off all LEDs for the selected strip
 
+  // Pre-calculate color based on brightness
+  CRGB digitColor = CRGB(BRIGHT * brightness / 100, BRIGHT * brightness / 100, BRIGHT * brightness / 100);
+
+
   // Display tens digit
   for (int i = 0; i < 32; i++) {
     if (targetLED0[tens][0] & (1 << i)) {
-      updateLEDs(leds, i, CRGB(BRIGHT * brightness / 3, BRIGHT * brightness / 3, BRIGHT * brightness / 3));
+      updateLEDs(leds, i, digitColor);
     }
     if (targetLED0[tens][1] & (1 << i)) {
-      updateLEDs(leds, i + 32, CRGB(BRIGHT * brightness / 3, BRIGHT * brightness / 3, BRIGHT * brightness / 3));
+      updateLEDs(leds, i + 32, digitColor);
     }
   }
 
   // Display ones digit
   for (int i = 0; i < 32; i++) {
     if (targetLED1[ones][0] & (1 << i)) {
-      updateLEDs(leds, i, CRGB(BRIGHT * brightness / 3, BRIGHT * brightness / 3, BRIGHT * brightness / 3));
+      updateLEDs(leds, i, digitColor);
     }
     if (targetLED1[ones][1] & (1 << i)) {
-      updateLEDs(leds, i + 32, CRGB(BRIGHT * brightness / 3, BRIGHT * brightness / 3, BRIGHT * brightness / 3));
+      updateLEDs(leds, i + 32, digitColor);
     }
   }
    FastLED.show();  // Update the LEDs

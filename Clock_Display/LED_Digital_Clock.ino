@@ -1,5 +1,6 @@
 #include <Wire.h>
 #include <RTClib.h>  // RTC library for DS1307/DS3231 or similar RTC modules
+#include <EEPROM.h>
 #include "Timer0.h"
 #include "espnow.h"
 #include "WS2812.h"
@@ -12,18 +13,21 @@
 #define MEDIUM_PRESS_MINS 1000
 #define LONG_PRESS_HOURS 2000
 #define PRESS_FOR_WEEKDAY 3000
+#define EEPROM_SIZE 512  // Define the size of EEPROM
 
 RTC_DS3231 rtc;  // Create an RTC object
 
 struct TimerState {
   bool displayDay;
   bool timerRunning;
-  int currentDayIndex;
+  static int currentDayIndex;
   int hourCount;
   int minscount;
   int seccount;
   int lastSyncMinute;
 };
+
+int TimerState::currentDayIndex = 0;  // Definition of static variable
 
 // Timer and ESP32 time variables
 int hours = 0, mins = 0;
@@ -32,6 +36,30 @@ TimerState timerState;
 TaskHandle_t Task1Handle;
 TaskHandle_t Task2Handle;
 
+void init_eeprom() {
+  if (!EEPROM.begin(EEPROM_SIZE)) {
+    Serial.println("Failed to Initialize EEPROM");
+    return;
+  }
+  
+  // Read the saved day index from EEPROM at address 0
+  int savedDayIndex = EEPROM.read(0);
+
+  // Check if saved value is valid (in the range 0-6 for the week days)
+  if (savedDayIndex >= 0 && savedDayIndex <= 6) {
+    timerState.currentDayIndex = savedDayIndex;
+  } else {
+    timerState.currentDayIndex = 0; // Default to Sunday (0) if invalid
+  }
+
+  Serial.printf("Restored Day Index: %d\n", timerState.currentDayIndex);
+}
+
+void storeDayIndex() {
+  EEPROM.write(0, timerState.currentDayIndex);  // Write to EEPROM at address 0
+  EEPROM.commit();                              // Commit changes
+  Serial.printf("Day index %d saved to EEPROM.\n", timerState.currentDayIndex);
+}
 // RTC initialization
 void init_rtc() {
   if (!rtc.begin()) {
@@ -54,11 +82,13 @@ void sync_time_with_rtc() {
   CountIsrAT = now.second();
 }
 
+void adjust_rtc(int H, int M, int S);
+
 void Task1(void *DotMatrix) {
   while (true) {
     // Assuming 'hours', 'mins', and 'CountIsrAT' are updated elsewhere based on real-time
-    timerState.hourCount = hours;        // Update hourCount from external source
-    timerState.displayDay = true;        // Set flag to display the day
+    timerState.hourCount = hours;  // Update hourCount from external source
+    timerState.displayDay = true;  // Set flag to display the day
 
     // Print current hour and week information for debugging
     // Serial.printf("Hourcount :  %d\n", timerState.hourCount);
@@ -93,6 +123,7 @@ void setup() {
 
   // Initialize various modules
   init_espnow();
+  init_eeprom();
   init_rtc();
   init_timer0();
   init_ledsec();
@@ -219,12 +250,12 @@ void loop() {
     displayDigit(mins / 10, mins % 10, led2);
     displayDigit(CountIsrAT / 10, CountIsrAT % 10, led1);
 
-     // Move to the next day if the time rolls over from 23:59:59 to 00:00:00
-    if ( hours == 0 && mins == 0 && CountIsrAT == 0) {
+    // Move to the next day if the time rolls over from 23:59:59 to 00:00:00
+    if (hours == 0 && mins == 0 && CountIsrAT == 0) {
       Serial.println("Incrementing day index...");
 
-      timerState.hourCount = 0;          // Reset hour count after 24 hours
-      timerState.currentDayIndex++;      // Increment the day
+      timerState.hourCount = 0;      // Reset hour count after 24 hours
+      timerState.currentDayIndex++;  // Increment the day
 
       if (timerState.currentDayIndex >= 7) {
         timerState.currentDayIndex = 0;  // Loop back to day 0 after a week
@@ -234,7 +265,10 @@ void loop() {
       Serial.print("Updated Week Number: ");
       Serial.println(timerState.currentDayIndex);
     }
-
+    adjust_rtc(hours, mins, CountIsrAT);
+    Serial.print("Week Number: ");
+    Serial.println(timerState.currentDayIndex);
+    storeDayIndex();
   }
   /*
   // Sync time with RTC at the start of each minute
@@ -245,4 +279,13 @@ void loop() {
     Serial.println("Time synced with RTC");
   }
 */
+}
+void adjust_rtc(int H, int M, int S) {
+  DateTime now = rtc.now();
+  int year = now.year();
+  int month = now.month();
+  int day = now.day();
+
+  rtc.adjust(DateTime(year, month, day, H, M, S));
+  Serial.println("RTC time adjusted!");
 }
