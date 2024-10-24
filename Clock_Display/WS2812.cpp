@@ -62,7 +62,7 @@ void displayDigit(int tens, int ones, CRGB* leds) {
   clearLEDs(leds);  // Turn off all LEDs for the selected strip
 
   // Pre-calculate color based on brightness
-  CRGB digitColor = CRGB(BRIGHT * brightness / 100, BRIGHT * brightness / 100, BRIGHT * brightness / 100);
+  CRGB digitColor = CRGB(BRIGHT * brightness / 2, BRIGHT * brightness / 2, BRIGHT * brightness / 2);
 
 
   // Display tens digit

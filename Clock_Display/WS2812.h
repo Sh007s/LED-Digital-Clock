@@ -9,7 +9,7 @@
 #define RED              0
 #define GREEN            100
 #define BLUE             0
-#define BRIGHT           40
+#define BRIGHT           50
 #define LED_COUNT        64
 
 // Declare the variables with extern
