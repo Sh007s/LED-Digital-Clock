@@ -1,7 +1,7 @@
 #include "espnow.h"
 
 // MAC Address of the receiver
-uint8_t receiverAddress[] = { 0x10, 0x06, 0x1C, 0xF4, 0x52, 0x5C };
+uint8_t receiverAddress[] = { 0x10, 0x06, 0x1C, 0xF4, 0x65, 0x04 };
 
 void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
   if(mac_addr != NULL){
