@@ -35,13 +35,14 @@ TimerState timerState;
 
 TaskHandle_t Task1Handle;
 TaskHandle_t Task2Handle;
+TaskHandle_t Task3Handle;
 
 void init_eeprom() {
   if (!EEPROM.begin(EEPROM_SIZE)) {
     Serial.println("Failed to Initialize EEPROM");
     return;
   }
-  
+
   // Read the saved day index from EEPROM at address 0
   int savedDayIndex = EEPROM.read(0);
 
@@ -49,7 +50,7 @@ void init_eeprom() {
   if (savedDayIndex >= 0 && savedDayIndex <= 6) {
     timerState.currentDayIndex = savedDayIndex;
   } else {
-    timerState.currentDayIndex = 0; // Default to Sunday (0) if invalid
+    timerState.currentDayIndex = 0;  // Default to Sunday (0) if invalid
   }
 
   Serial.printf("Restored Day Index: %d\n", timerState.currentDayIndex);
@@ -117,6 +118,32 @@ void Task2(void *Temp_hum) {
   }
 }
 
+void DayCheckTask(void *parameter) {
+  while (true) {
+    // Check if it's a new day (00:00:00)
+    if (hours == 0 && mins == 0 && CountIsrAT == 0) {
+      Serial.println("Incrementing day index...");
+
+      timerState.hourCount = 0;      // Reset hour count for the new day
+      timerState.currentDayIndex++;  // Move to the next day
+
+      if (timerState.currentDayIndex >= 7) {
+        timerState.currentDayIndex = 0;  // Loop back to day 0 after a week
+      }
+
+      // Debug output
+      Serial.print("Updated Week Number: ");
+      Serial.println(timerState.currentDayIndex);
+
+      storeDayIndex();  // Store the updated day index
+    }
+
+    adjust_rtc(hours, mins, CountIsrAT);  // Ensure RTC is up to date
+
+    vTaskDelay(1000 / portTICK_PERIOD_MS);  // Delay for 1 second to check every second
+  }
+}
+
 // Setup function
 void setup() {
   Serial.begin(115200);
@@ -131,8 +158,9 @@ void setup() {
   init_7dispaly();
   init_DOT_setup();
 
-  xTaskCreate(Task1, "Task 1", 10000, NULL, 1, &Task1Handle);
-  xTaskCreate(Task2, "Task 2", 10000, NULL, 1, &Task2Handle);
+  xTaskCreate(Task1, "Task 1", 4096, NULL, 1, &Task1Handle);
+  xTaskCreate(Task2, "Task 2", 4096, NULL, 1, &Task2Handle);
+  xTaskCreate(DayCheckTask, "DayCheckTask", 4096, NULL, 1, &Task3Handle);
 
   // Initial RTC sync
   sync_time_with_rtc();
@@ -172,32 +200,23 @@ void loop() {
     }
   }
 
-  // Handle button press logic
   if (Recvdata.timerPaused && Recvdata.button2Pressed) {
+    // Reset all flags first
+    Recvdata.weekday = Recvdata.timerhours = Recvdata.timermins = Recvdata.timersec = false;
+
+    // Set the appropriate flag based on press duration
     if (Recvdata.pressDuration >= PRESS_FOR_WEEKDAY) {
       Recvdata.weekday = true;
-      Recvdata.timerhours = false;
-      Recvdata.timermins = false;
-      Recvdata.timersec = false;
     } else if (Recvdata.pressDuration >= LONG_PRESS_HOURS) {
       Recvdata.timerhours = true;
-      Recvdata.timermins = false;
-      Recvdata.timersec = false;
-      Recvdata.weekday = false;
     } else if (Recvdata.pressDuration >= MEDIUM_PRESS_MINS) {
       Recvdata.timermins = true;
-      Recvdata.timerhours = false;
-      Recvdata.timersec = false;
-      Recvdata.weekday = false;
     } else if (Recvdata.pressDuration >= SHORT_PRESS_SEC) {
       Recvdata.timersec = true;
-      Recvdata.timerhours = false;
-      Recvdata.timermins = false;
-      Recvdata.weekday = false;
     }
+
     Recvdata.button2Pressed = false;
   }
-
   // Increment corresponding timer values
   if (Recvdata.timerPaused && Recvdata.button3Pressed) {
     if (Recvdata.timersec) {
@@ -249,37 +268,9 @@ void loop() {
     displayDigit(hours / 10, hours % 10, led3);
     displayDigit(mins / 10, mins % 10, led2);
     displayDigit(CountIsrAT / 10, CountIsrAT % 10, led1);
-
-    // Move to the next day if the time rolls over from 23:59:59 to 00:00:00
-    if (hours == 0 && mins == 0 && CountIsrAT == 0) {
-      Serial.println("Incrementing day index...");
-
-      timerState.hourCount = 0;      // Reset hour count after 24 hours
-      timerState.currentDayIndex++;  // Increment the day
-
-      if (timerState.currentDayIndex >= 7) {
-        timerState.currentDayIndex = 0;  // Loop back to day 0 after a week
-      }
-
-      // Print updated week number for debugging
-      Serial.print("Updated Week Number: ");
-      Serial.println(timerState.currentDayIndex);
-    }
-    adjust_rtc(hours, mins, CountIsrAT);
-    Serial.print("Week Number: ");
-    Serial.println(timerState.currentDayIndex);
-    storeDayIndex();
   }
-  /*
-  // Sync time with RTC at the start of each minute
-  DateTime now = rtc.now();
-  if (now.minute() != timerState.lastSyncMinute) {
-    sync_time_with_rtc();
-    timerState.lastSyncMinute = now.minute();
-    Serial.println("Time synced with RTC");
-  }
-*/
 }
+
 void adjust_rtc(int H, int M, int S) {
   DateTime now = rtc.now();
   int year = now.year();
@@ -287,5 +278,5 @@ void adjust_rtc(int H, int M, int S) {
   int day = now.day();
 
   rtc.adjust(DateTime(year, month, day, H, M, S));
-  Serial.println("RTC time adjusted!");
+ // Serial.println("RTC time adjusted!");
 }
